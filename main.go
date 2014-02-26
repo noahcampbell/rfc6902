@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 )
 
 type op struct {
@@ -25,51 +24,14 @@ func (o *op) apply(v interface{}) error {
 }
 
 func (o *op) add(v interface{}) error {
-	v, leaf := o.traversePath(v)
-	switch t := v.(type) {
-	case map[string]interface{}:
-		t[leaf] = o.Value
-	default:
-		panic("Unknown")
+	ref, err := jsonPointer(o.Path, v)
+	if err != nil && err != ErrorInvalidJSONPath {
+		return err
 	}
+	fmt.Printf("%#v\n", v)
+	ref.Insert(o.Value)
+	fmt.Printf("%#v\n", v)
 	return nil
-}
-
-func (o *op) traversePath(v interface{}) (ref interface{}, leaf string) {
-	var (
-		miss bool
-	)
-	for _, el := range strings.Split(o.Path, "/") {
-		if len(el) <= 0 {
-			continue
-		}
-		leaf = el
-		if miss {
-			panic("too many levels.") // todo fix this up
-		}
-
-		ref = v
-		switch t := v.(type) {
-		case map[string]interface{}:
-			vv, ok := t[el]
-			if !ok {
-				miss = true
-				continue
-			}
-			ref = vv
-		case []interface{}:
-			panic("arrays...don't know what to do.")
-		case string:
-			panic("strings...don't know what to do.")
-		case interface{}:
-			panic("object...don't know what to do.")
-		default:
-			fmt.Printf("Unknown type %T\n", t)
-			panic("wtf")
-		}
-
-	}
-	return
 }
 
 type Patcher struct {

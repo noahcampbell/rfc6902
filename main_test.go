@@ -1,6 +1,7 @@
 package rfc6902
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -43,10 +44,7 @@ func Test_ParsePatch_MissingRequiredElements(t *testing.T) {
 
 func Test_OperationAdd(t *testing.T) {
 
-	patch := `[
-     { "op": "add", "path": "/baz", "value": "qux" }
-   ]
-`
+	patch := `[{ "op": "add", "path": "/baz", "value": "qux" }]`
 
 	p, err := ParsePatch(strings.NewReader(patch))
 	if err != nil {
@@ -76,27 +74,44 @@ func Test_PatchApply_Empty(t *testing.T) {
 
 func Test_RFC6902_A1(t *testing.T) {
 
-	target := `{ "foo": "bar"}`
-	expect := `{
-     "baz": "qux",
-     "foo": "bar"
-   }`
-	patch := `[
-     { "op": "add", "path": "/baz", "value": "qux" }
-   ]
-`
-
-	p, err := ParsePatch(strings.NewReader(patch))
-	if err != nil {
-		t.Errorf("Failed parsing: %q. %s", patch, err)
+	tests := []struct {
+		rfcTitle, target, patch, expect string
+	}{
+		{
+			rfcTitle: `A.1. Adding an Object Member`,
+			target:   `{ "foo": "bar"}`,
+			expect:   `{ "baz": "qux", "foo": "bar" }`,
+			patch:    `[ { "op": "add", "path": "/baz", "value": "qux" } ]`,
+		},
+		{
+			rfcTitle: "A.2. Adding an Array Element",
+			target:   `{ "foo": [ "bar", "baz" ] }`,
+			patch:    `[ { "op": "add", "path": "/foo/1", "value": "qux" } ]`,
+			expect:   `{ "foo": [ "bar", "qux", "baz" ] }`,
+		},
+/*
+		{
+			rfcTitle: "Degenerate: Array Document",
+			target:   `[ "bar", "baz" ] `,
+			patch:    `[ { "op": "add", "path": "/1", "value": "qux" } ]`,
+			expect:   `[ "bar", "qux", "baz" ]`,
+		},
+*/
 	}
 
-	result, err := p.Apply([]byte(target))
-	if err != nil {
-		t.Fatalf("Unable to apply patch %s", err)
-	}
-	if !jsonEqual(result, []byte(expect)) {
-		t.Errorf("(actual) %q != %q (expected)", result, expect)
+	for _, test := range tests {
+		p, err := ParsePatch(strings.NewReader(test.patch))
+		if err != nil {
+			t.Fatalf("Failed parsing: %q. %s", test.patch, err)
+		}
+
+		result, err := p.Apply([]byte(test.target))
+		if err != nil {
+			t.Fatalf("%s: Unable to apply patch %s", test.rfcTitle, err)
+		}
+		if !jsonEqual(result, []byte(test.expect)) {
+			t.Errorf("%s\npatch failed => %s\n\nactual:\n%s\n\nexpected:\n%s", test.rfcTitle, test.patch, prettyPrintJson(result), prettyPrintJson([]byte(test.expect)))
+		}
 	}
 }
 
@@ -105,4 +120,10 @@ func jsonEqual(left, right []byte) bool {
 	json.Unmarshal(left, &l)
 	json.Unmarshal(right, &r)
 	return reflect.DeepEqual(l, r)
+}
+
+func prettyPrintJson(src []byte) string {
+	b := new(bytes.Buffer)
+	json.Indent(b, src, "", "  ")
+	return b.String()
 }
