@@ -1,0 +1,108 @@
+package rfc6902
+
+import (
+	"encoding/json"
+	"fmt"
+	"reflect"
+	"strings"
+	"testing"
+)
+
+func Test_ParsePatch_NilReader(t *testing.T) {
+	_, err := ParsePatch(nil)
+	if err == nil {
+		t.Fatalf("Expected error for nil reader.")
+	}
+}
+
+func Test_ParsePatch_EmptyReader(t *testing.T) {
+	_, err := ParsePatch(strings.NewReader(""))
+	if err == nil {
+		t.Fatalf("Parsing must return an error for \"\": %s", err)
+	}
+
+}
+
+func Test_ParsePatch_MissingRequiredElements(t *testing.T) {
+	tests := []struct {
+		invalidPatchDoc string
+		expected        error
+	}{
+		{"[{\"path\": \"/a/b/c/\"}]", fmt.Errorf("rfc6902: missing op at 0 (section 4 Operations)")},
+		{"[{\"op\": \"add\"}]", fmt.Errorf("rfc6902: missing path at 0 (section 4 Operations)")},
+		{"[{\"op\": \"add\", \"path\": \"/a/b/c\"}]", fmt.Errorf("rfc6902: missing value for add op (section 4.1 add)")},
+	}
+
+	for _, test := range tests {
+		_, err := ParsePatch(strings.NewReader(test.invalidPatchDoc))
+		if err.Error() != test.expected.Error() {
+			t.Errorf("For doc: %q (actual) %q != %q (expected)", test.invalidPatchDoc, err, test.expected)
+		}
+	}
+}
+
+func Test_OperationAdd(t *testing.T) {
+
+	patch := `[
+     { "op": "add", "path": "/baz", "value": "qux" }
+   ]
+`
+
+	p, err := ParsePatch(strings.NewReader(patch))
+	if err != nil {
+		t.Errorf("Failed parsing: %q. %s", patch, err)
+	}
+
+	if len(p.ops) != 1 {
+		t.Errorf("Mismatched number of ops (actual) %d != 1 (expected)", len(p.ops))
+	}
+
+	if p.ops[0].Op != "add" {
+		t.Errorf("(actual) %q != 'add' (expected)", p.ops[0].Op)
+	}
+
+	if p.ops[0].Path != "/baz" {
+		t.Errorf("(actual) %q != '/baz/' (expected)", p.ops[0].Path)
+	}
+}
+
+func Test_PatchApply_Empty(t *testing.T) {
+	p, _ := ParsePatch(strings.NewReader("[{\"op\": \"add\", \"path\":\"/a/b/c\", \"value\":\"foobar\"}]"))
+	_, err := p.Apply([]byte{})
+	if err == nil {
+		t.Fatalf("Missing error for empty document.")
+	}
+}
+
+func Test_RFC6902_A1(t *testing.T) {
+
+	target := `{ "foo": "bar"}`
+	expect := `{
+     "baz": "qux",
+     "foo": "bar"
+   }`
+	patch := `[
+     { "op": "add", "path": "/baz", "value": "qux" }
+   ]
+`
+
+	p, err := ParsePatch(strings.NewReader(patch))
+	if err != nil {
+		t.Errorf("Failed parsing: %q. %s", patch, err)
+	}
+
+	result, err := p.Apply([]byte(target))
+	if err != nil {
+		t.Fatalf("Unable to apply patch %s", err)
+	}
+	if !jsonEqual(result, []byte(expect)) {
+		t.Errorf("(actual) %q != %q (expected)", result, expect)
+	}
+}
+
+func jsonEqual(left, right []byte) bool {
+	var l, r interface{}
+	json.Unmarshal(left, &l)
+	json.Unmarshal(right, &r)
+	return reflect.DeepEqual(l, r)
+}
