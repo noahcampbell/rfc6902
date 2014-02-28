@@ -101,19 +101,10 @@ type ValueInserter interface {
 	Remover
 }
 
-func jsonPointer(path string, doc interface{}) (value ValueInserter, err error) {
-
-	if len(path) > 0 && path[0] == '#' {
-		path, err := url.QueryUnescape(path[1:])
-		if err != nil {
-			return nil, err
-		}
-		return jsonPointer(path, doc)
-	}
+func jsonPointer(fields jsonptr, doc interface{}) (value ValueInserter, err error) {
 
 	ref := doc
 	value = &refPointer{doc}
-	fields := jsonPathFields(path)
 	var last *mapPointer // needed to support updating arrays until I figure out how to inplace update an array within a struct (may not be possible.  This also don't work when the JSON object is an array.
 	for _, field := range fields {
 		el := field.token()
@@ -175,7 +166,14 @@ func newRefToken(in string) reftoken {
 	return reftoken(in[1:])
 }
 
-func jsonPathFields(path string) (head jsonptr) {
+func newJSONPointer(path string) (head jsonptr, err error) {
+	if len(path) > 0 && path[0] == '#' {
+		path, err = url.QueryUnescape(path[1:])
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	s := path
 	for len(s) > 0 {
 		if s[0] == '/' {

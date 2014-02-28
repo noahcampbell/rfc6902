@@ -60,7 +60,8 @@ func Test_JSONPointer_RFCExamples(t *testing.T) {
 
 	for i, test := range tests {
 		t.Logf("Testing path: %q", test.path)
-		v, _ := jsonPointer(test.path, v)
+		f, _ := newJSONPointer(test.path)
+		v, _ := jsonPointer(f, v)
 		if !objectJsonCompare(v.Value(), []byte(test.expected)) {
 			t.Errorf("%d. %s failed: (actual) %#v != %s (expected)", i, test.path, v, test.expected)
 		}
@@ -88,7 +89,8 @@ func Test_JSONPointer_ErrorHandling(t *testing.T) {
 	var v interface{}
 	json.Unmarshal([]byte(errorTarget), &v)
 	for _, test := range tests {
-		_, err := jsonPointer(test.path, v)
+		f, _ := newJSONPointer(test.path)
+		_, err := jsonPointer(f, v)
 		if err != ErrorInvalidJSONPath {
 			t.Errorf("%s: is a missing path but retunred err:", test.path, err)
 		}
@@ -119,7 +121,7 @@ func Test_ParseIntoFields(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		actual := jsonPathFields(test.path)
+		actual, _ := newJSONPointer(test.path)
 
 		if test.length != len(actual) {
 			t.Errorf("%s: field parsing return (actual) %d != %d (expected) elements", test.path, len(actual), test.length)
