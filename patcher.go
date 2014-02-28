@@ -93,7 +93,7 @@ type ValueInserter interface {
 	Remover
 }
 
-func jsonPointer(fields jsonptr, doc interface{}) (value ValueInserter, err error) {
+func patch(fields jsonptr, doc interface{}) (value ValueInserter, err error) {
 
 	ref := doc
 	value = &refPointer{doc}

@@ -16,27 +16,36 @@ type op struct {
 
 func (o *op) apply(v interface{}) error {
 	ptr, err := newJSONPointer(o.Path)
-	ref, err := jsonPointer(ptr, v)
-	if err != nil && err != ErrorInvalidJSONPath {
+	if err != nil {
 		return err
 	}
 
 	switch o.Op {
 	case "add":
-		return o.add(ref, v)
+		return o.add(ptr, v)
 	case "remove":
-		return o.remove(ref, v)
+		return o.remove(ptr, v)
 	default:
 		return errors.New("rfc6902: unknown operation")
 	}
 }
 
-func (o *op) add(ref Inserter, v interface{}) error {
+func (o *op) add(ptr jsonptr, v interface{}) error {
+	ref, err := patch(ptr, v)
+	if err != nil && err != ErrorInvalidJSONPath {
+		return err
+	}
+
 	ref.Insert(o.Value)
 	return nil
 }
 
-func (o *op) remove(ref Remover, v interface{}) error {
+func (o *op) remove(ptr jsonptr, v interface{}) error {
+	ref, err := patch(ptr, v)
+	if err != nil && err != ErrorInvalidJSONPath {
+		return err
+	}
+
 	ref.Remove()
 	return nil
 }
