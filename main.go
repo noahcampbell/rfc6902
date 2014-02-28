@@ -18,6 +18,8 @@ func (o *op) apply(v interface{}) error {
 	switch o.Op {
 	case "add":
 		return o.add(v)
+	case "remove":
+		return o.remove(v)
 	default:
 		return errors.New("rfc6902: unknown operation")
 	}
@@ -28,9 +30,16 @@ func (o *op) add(v interface{}) error {
 	if err != nil && err != ErrorInvalidJSONPath {
 		return err
 	}
-	fmt.Printf("%#v\n", v)
 	ref.Insert(o.Value)
-	fmt.Printf("%#v\n", v)
+	return nil
+}
+
+func (o *op) remove(v interface{}) error {
+	ref, err := jsonPointer(o.Path, v)
+	if err != nil && err != ErrorInvalidJSONPath {
+		return err
+	}
+	ref.Remove()
 	return nil
 }
 

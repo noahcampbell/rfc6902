@@ -22,12 +22,17 @@ type Overwriter interface {
 	Overwrite(v interface{})
 }
 
+type Remover interface {
+	Remove()
+}
+
 type Valuer interface {
 	Value() interface{}
 }
 
 type PtrMutator interface {
 	Inserter
+	Remover
 	Overwriter
 	Valuer
 }
@@ -45,12 +50,20 @@ func (m *mapPointer) Insert(v interface{}) {
 	m.mm[m.el] = v
 }
 
+func (m *mapPointer) Remove() {
+	delete(m.mm, m.el)
+}
+
 type refPointer struct {
 	value interface{}
 }
 
 func (r *refPointer) Value() interface{} {
 	return r.value
+}
+
+func (r *refPointer) Remove() {
+	panic("cannot remove element from refPointer")
 }
 
 func (r *refPointer) Insert(v interface{}) {
@@ -75,12 +88,17 @@ func (r *arrayPointer) Insert(v interface{}) {
 
 }
 
+func (r *arrayPointer) Remove() {
+	panic("cannot remove element from arrayPointer")
+}
+
 var ErrorInvalidJSONPath = errors.New("invalid pointer path")
 
 // todo remove
 type ValueInserter interface {
 	Valuer
 	Inserter
+	Remover
 }
 
 func jsonPointer(path string, doc interface{}) (value ValueInserter, err error) {
