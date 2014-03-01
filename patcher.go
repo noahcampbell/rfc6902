@@ -93,6 +93,57 @@ type ValueInserter interface {
 	Remover
 }
 
+type patcher struct {
+	pointer jsonptr
+	jsonObject interface{}
+}
+
+func (p *patcher) existingValue() (interface{}, error) {
+	v, err := value(p.pointer, p.jsonObject)
+	return *v, err
+}
+
+func (p *patcher) existing() bool {
+	_, err := value(p.pointer, p.jsonObject)
+	return err == nil
+}
+
+func (p *patcher) parentValue() (*interface{}, error) {
+	return value(p.pointer[:len(p.pointer)-1], p.jsonObject)
+}
+
+func value(fields jsonptr, ref interface{}) (value *interface{}, err error) {
+
+	value = &ref
+	for _, field := range fields {
+		el := field.token()
+		switch t := ref.(type) {
+		case map[string]interface{}:
+			vv, ok := t[el]
+			if !ok {
+				return nil, ErrorInvalidJSONPath
+			}
+			value = &vv
+			ref = vv
+		case []interface{}:
+			idx, err := strconv.Atoi(string(el))
+			if err != nil {
+				panic("unable to convert to integer")
+			}
+			if idx >= len(t) {
+				return nil, ErrorInvalidJSONPath
+			}
+			vv := t[idx]
+			value = &vv
+			ref = vv
+		default:
+			panic(fmt.Sprintf("unknown type %T\n", t))
+		}
+	}
+	return
+}
+
+
 func patch(fields jsonptr, doc interface{}) (value ValueInserter, err error) {
 
 	ref := doc
