@@ -2,10 +2,43 @@ package rfc6902
 
 import (
 	"encoding/json"
-"fmt"
 	"reflect"
 	"testing"
 )
+
+func Test_Patcher_Parent(t *testing.T) {
+	p := &patcher{ptr("/foo/bar/baz"), um(`{"foo": {"bar": {"baz": "eof"}}}`)}
+	p1 := p.parent() // baz
+	p2 := p1.parent() // bar
+	p3 := p2.parent() //foo (no parent)
+	if p3 != nil {
+		t.Errorf("Expect parent to be nil")
+	}
+}
+
+
+func Test_Patcher_AddToExisting(t *testing.T) {
+	tests := []struct {
+		path     string
+		target   string
+		expected string
+	}{
+		{"/a", "{}", `{"a": "b"}`},
+		{"/1", `["a", "c"]`, `["a", "b", "c"]`},
+		{"/foo/1", `{"foo": ["a", "c"]}`, `{"foo": ["a", "b", "c"]}`},
+		//{"/foo/1/1", `{"foo": ["a", ["a", "c"]]}`, `{"foo": ["a", ["a", "b", "c"]]}`},
+	}
+	for i, test := range tests {
+		p := &patcher{ptr(test.path), um(test.target)}
+		p.setExistingValue("b")
+		if !reflect.DeepEqual(p.jsonObject, um(test.expected)) {
+			t.Errorf("%d: Value() (actual) %q != %q (expected)", i, p.jsonObject, um(test.expected))
+		}
+		if !p.existing() {
+			t.Errorf("existing (actual) false != true (expected)")
+		}
+	}
+}
 
 func Test_Patcher_ExistingValue(t *testing.T) {
 	tests := []struct {
@@ -21,9 +54,9 @@ func Test_Patcher_ExistingValue(t *testing.T) {
 	}
 	for i, test := range tests {
 		p := &patcher{ptr(test.path), um(test.target)}
-		v, _ := p.existingValue()
+		v, _ := p.value()
 		if !reflect.DeepEqual(v, test.expected) {
-			t.Errorf("%d: existingValue() (actual) %q != %q (expected)", i, v, test.expected)
+			t.Errorf("%d: value() (actual) %q != %q (expected)", i, v, test.expected)
 		}
 		if !p.existing() {
 			t.Errorf("existing (actual) false != true (expected)")
@@ -50,12 +83,9 @@ func Test_Patcher_NotExistingValue(t *testing.T) {
 		}
 
 		v, _ := p.parentValue()
-		if !reflect.DeepEqual(*v, test.expected) {
+		if !reflect.DeepEqual(v, test.expected) {
 			t.Errorf("%d: parentValue() (actual) %#v != %#v (expected)", i, v, test.expected)
 		}
-
-		fmt.Printf("p.jsonObject: %#v\n", p.jsonObject)
-
 	}
 }
 

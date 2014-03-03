@@ -24,6 +24,10 @@ func (j jsonptr) String() (s string) {
 	return
 }
 
+func (j jsonptr) element() string {
+	return j[len(j)-1].token()
+}
+
 type reftoken string
 
 func (r reftoken) token() string {

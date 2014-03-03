@@ -89,19 +89,23 @@ func Test_RFC6902_A1(t *testing.T) {
 			patch:    `[ { "op": "add", "path": "/foo/1", "value": "qux" } ]`,
 			expect:   `{ "foo": [ "bar", "qux", "baz" ] }`,
 		},
-/* This doesn't work given the current implementation.
 		{
 			rfcTitle: "Degenerate: Array Document",
 			target:   `[ "bar", "baz" ] `,
 			patch:    `[ { "op": "add", "path": "/1", "value": "qux" } ]`,
 			expect:   `[ "bar", "qux", "baz" ]`,
 		},
-*/
 		{
 			rfcTitle: "A.3. Remove an Object Member",
 			target: `{ "baz": "qux", "foo": "bar" }`,
 			patch: `[ { "op": "remove", "path": "/baz" } ]`,
 			expect: `{ "foo": "bar" }`,
+		},
+		{
+			rfcTitle: "A.4. Removing an Array Element",
+			target: `{ "foo": [ "bar", "qux", "baz" ] }`,
+			patch: `[ { "op": "remove", "path": "/foo/1" } ]`,
+			expect: `{ "foo": [ "bar", "baz" ] }`,
 		},
 
 	}

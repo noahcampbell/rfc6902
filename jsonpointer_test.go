@@ -61,8 +61,9 @@ func Test_JSONPointer_RFCExamples(t *testing.T) {
 	for i, test := range tests {
 		t.Logf("Testing path: %q", test.path)
 		f, _ := newJSONPointer(test.path)
-		v, _ := patch(f, v)
-		if !objectJsonCompare(v.Value(), []byte(test.expected)) {
+		v := patcher{f, v}
+		value, _ := v.value()
+		if !objectJsonCompare(value, []byte(test.expected)) {
 			t.Errorf("%d. %s failed: (actual) %#v != %s (expected)", i, test.path, v, test.expected)
 		}
 	}
@@ -90,7 +91,8 @@ func Test_JSONPointer_ErrorHandling(t *testing.T) {
 	json.Unmarshal([]byte(errorTarget), &v)
 	for _, test := range tests {
 		f, _ := newJSONPointer(test.path)
-		_, err := patch(f, v)
+		p := patcher{f, v}
+		_, err := p.value()
 		if err != ErrorInvalidJSONPath {
 			t.Errorf("%s: is a missing path but retunred err:", test.path, err)
 		}
