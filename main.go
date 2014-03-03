@@ -138,13 +138,19 @@ func (p *Patcher) Apply(b []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	v, err = p.apply(v)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(v)
+}
 
+func (p *Patcher) apply(v interface{}) (result interface{}, err error) {
+	result = v
 	for _, op := range p.ops {
-		v, err = op.apply(v)
-		if err != nil {
-			return nil, err
+		if result, err = op.apply(result); err != nil {
+			return
 		}
 	}
-
-	return json.Marshal(v)
+	return
 }
