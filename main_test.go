@@ -90,7 +90,7 @@ func Test_RFC6902_A1(t *testing.T) {
 			expect:   `{ "foo": [ "bar", "qux", "baz" ] }`,
 		},
 		{
-			rfcTitle: "Degenerate: Array Document",
+			rfcTitle: "Extra Credit: Array Document",
 			target:   `[ "bar", "baz" ] `,
 			patch:    `[ { "op": "add", "path": "/1", "value": "qux" } ]`,
 			expect:   `[ "bar", "qux", "baz" ]`,
@@ -106,6 +106,18 @@ func Test_RFC6902_A1(t *testing.T) {
 			target: `{ "foo": [ "bar", "qux", "baz" ] }`,
 			patch: `[ { "op": "remove", "path": "/foo/1" } ]`,
 			expect: `{ "foo": [ "bar", "baz" ] }`,
+		},
+		{
+			rfcTitle: "A.5. Replace a Value",
+			target: `{ "baz": "qux", "foo": "bar" }`,
+			patch: `[ { "op": "replace", "path": "/baz", "value": "boo" } ]`,
+			expect: `{ "baz": "boo", "foo": "bar" }`,
+		},
+		{
+			rfcTitle: "Extra Credit. Replace a Value in an array",
+			target: `{ "foo": ["qux", "bar"]}`,
+			patch: `[ { "op": "replace", "path": "/foo/0", "value": "baz" } ]`,
+			expect: `{ "foo": ["baz", "bar" ]}`,
 		},
 
 	}

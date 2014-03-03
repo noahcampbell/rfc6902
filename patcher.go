@@ -118,6 +118,35 @@ func (p *patcher) remove() error {
 	return nil
 }
 
+func (p *patcher) replace(o interface{}) error {
+	ref, err := p.parentValue()
+	if err != nil {
+		return err
+	}
+
+	switch t := ref.(type) {
+	case map[string]interface{}:
+		_ = t
+		p.setExistingValue(o)
+	case []interface{}:
+		parent := p.parent()
+		i, err := strconv.Atoi(p.pointer[len(p.pointer)-1].token())
+		if err != nil {
+			return err
+		}
+		parentValue, err := parent.value()
+		if err != nil {
+			return err
+		}
+		container, ok := parentValue.([]interface{})
+		if !ok {
+			panic("Unable to convert parent to []interface{}")
+		}
+		container[i] = o
+	}
+	return nil
+}
+
 func value(fields jsonptr, ref *interface{}) (value *interface{}, err error) {
 
 	value = ref

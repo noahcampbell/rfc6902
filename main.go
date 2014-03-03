@@ -25,6 +25,8 @@ func (o *op) apply(v interface{}) (interface{}, error) {
 		return o.add(ptr, v)
 	case "remove":
 		return o.remove(ptr, v)
+	case "replace":
+		return o.replace(ptr, v)
 	default:
 		return nil, errors.New("rfc6902: unknown operation")
 	}
@@ -32,13 +34,19 @@ func (o *op) apply(v interface{}) (interface{}, error) {
 
 func (o *op) add(ptr jsonptr, v interface{}) (interface{}, error) {
 	p := patcher{ptr, v}
-	p.setExistingValue(o.Value)	
+	p.setExistingValue(o.Value)
 	return p.jsonObject, nil
 }
 
 func (o *op) remove(ptr jsonptr, v interface{}) (interface{}, error) {
 	p := patcher{ptr, v}
 	p.remove()
+	return p.jsonObject, nil
+}
+
+func (o *op) replace(ptr jsonptr, v interface{}) (interface{}, error) {
+	p := patcher{ptr, v}
+	p.replace(o.Value)
 	return p.jsonObject, nil
 }
 
