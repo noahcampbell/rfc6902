@@ -8,14 +8,13 @@ import (
 
 func Test_Patcher_Parent(t *testing.T) {
 	p := &patcher{ptr("/foo/bar/baz"), um(`{"foo": {"bar": {"baz": "eof"}}}`)}
-	p1 := p.parent() // baz
+	p1 := p.parent()  // baz
 	p2 := p1.parent() // bar
 	p3 := p2.parent() //foo (no parent)
 	if p3 != nil {
 		t.Errorf("Expect parent to be nil")
 	}
 }
-
 
 func Test_Patcher_AddToExisting(t *testing.T) {
 	tests := []struct {
@@ -73,7 +72,7 @@ func Test_Patcher_NotExistingValue(t *testing.T) {
 		{"/a", "{}", map[string]interface{}{}},
 		{"/", `{"a": "whiteshadow"}`, map[string]interface{}{"a": "whiteshadow"}},
 		{"/c", `{"a": "b"}`, map[string]interface{}{"a": "b"}},
-		{"/", `{"z": ["a", "b"]}`, map[string]interface{}{"z":[]interface{}{"a", "b"}}},
+		{"/", `{"z": ["a", "b"]}`, map[string]interface{}{"z": []interface{}{"a", "b"}}},
 		{"/2", `["c", "d"]`, []interface{}{"c", "d"}},
 	}
 	for i, test := range tests {

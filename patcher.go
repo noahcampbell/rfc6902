@@ -1,9 +1,9 @@
 package rfc6902
 
 import (
-	"strconv"
 	"errors"
 	"fmt"
+	"strconv"
 )
 
 var ErrorInvalidJSONPath = errors.New("Invalid JSON Path")
@@ -12,7 +12,7 @@ var ErrorInvalidJSONPath = errors.New("Invalid JSON Path")
 Patcher to maniplate a json doc.
 */
 type patcher struct {
-	pointer jsonptr
+	pointer    jsonptr
 	jsonObject interface{}
 }
 
@@ -36,7 +36,7 @@ func (p *patcher) existing() bool {
 	return err == nil
 }
 
-func(p *patcher) setExistingValue(v interface{}) error {
+func (p *patcher) setExistingValue(v interface{}) error {
 	ref, err := p.parentValue()
 	if err != nil {
 		return err
@@ -105,7 +105,7 @@ func (p *patcher) remove() error {
 	parent := p.parent()
 	switch t := ref.(type) {
 	case map[string]interface{}:
-		delete(t, p.pointer[len(p.pointer) - 1].token())
+		delete(t, p.pointer[len(p.pointer)-1].token())
 	case []interface{}:
 		i, err := strconv.Atoi(p.pointer[len(p.pointer)-1].token())
 		if err != nil {
