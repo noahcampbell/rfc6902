@@ -50,7 +50,7 @@ func(p *patcher) setExistingValue(v interface{}) error {
 		if err != nil {
 			return err
 		}
-		parent, err := p.parentValue()	
+		parent, err := p.parentValue()
 		if err != nil {
 			return err
 		}
@@ -64,7 +64,7 @@ func(p *patcher) setExistingValue(v interface{}) error {
 		if parentRef == nil {
 			p.setParentValue(na)
 			return nil
-		} 
+		}
 
 		parentRef.setExistingValue(na)
 
@@ -90,9 +90,30 @@ func (p *patcher) remove() error {
 		return err
 	}
 
+	parent := p.parent()
 	switch t := ref.(type) {
 	case map[string]interface{}:
-		delete(t, p.pointer[len(p.pointer)-1].token())
+		delete(t, p.pointer[len(p.pointer) - 1].token())
+	case []interface{}:
+		i, err := strconv.Atoi(p.pointer[len(p.pointer)-1].token())
+		if err != nil {
+			return err
+		}
+		parentValue, err := parent.value()
+		if err != nil {
+			return err
+		}
+		container, ok := parentValue.([]interface{})
+		if !ok {
+			panic("Unable to convert parent to []interface{}")
+		}
+
+		newArray := make([]interface{}, len(container) - 2)
+		copy(newArray, container[:i])
+		newArray = append(newArray, container[i+1:]...)
+		parent.setExistingValue(newArray)
+	default:
+		panic("Unknown type for removal")
 	}
 	return nil
 }
