@@ -31,7 +31,7 @@ func (p *patcher) value() (interface{}, error) {
 	return *v, nil
 }
 
-func (p *patcher) existing() bool {
+func (p *patcher) exists() bool {
 	_, err := value(p.pointer, &p.jsonObject)
 	return err == nil
 }

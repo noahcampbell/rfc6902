@@ -33,8 +33,8 @@ func Test_Patcher_AddToExisting(t *testing.T) {
 		if !reflect.DeepEqual(p.jsonObject, um(test.expected)) {
 			t.Errorf("%d: Value() (actual) %q != %q (expected)", i, p.jsonObject, um(test.expected))
 		}
-		if !p.existing() {
-			t.Errorf("existing (actual) false != true (expected)")
+		if !p.exists() {
+			t.Errorf("exists (actual) false != true (expected)")
 		}
 	}
 }
@@ -57,8 +57,8 @@ func Test_Patcher_ExistingValue(t *testing.T) {
 		if !reflect.DeepEqual(v, test.expected) {
 			t.Errorf("%d: value() (actual) %q != %q (expected)", i, v, test.expected)
 		}
-		if !p.existing() {
-			t.Errorf("existing (actual) false != true (expected)")
+		if !p.exists() {
+			t.Errorf("exists (actual) false != true (expected)")
 		}
 	}
 }
@@ -77,8 +77,8 @@ func Test_Patcher_NotExistingValue(t *testing.T) {
 	}
 	for i, test := range tests {
 		p := &patcher{ptr(test.path), um(test.target)}
-		if p.existing() {
-			t.Errorf("%d: existing (actual) true != false (expected)", i)
+		if p.exists() {
+			t.Errorf("%d: exists (actual) true != false (expected)", i)
 		}
 
 		v, _ := p.parentValue()
