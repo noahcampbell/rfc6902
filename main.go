@@ -11,6 +11,7 @@ import (
 type op struct {
 	Op    string `json:"op"`
 	Path  string `json:"path"`
+	From  string `'json:"from"`
 	Value interface{}
 }
 
@@ -27,6 +28,10 @@ func (o *op) apply(v interface{}) (interface{}, error) {
 		return o.remove(ptr, v)
 	case "replace":
 		return o.replace(ptr, v)
+	case "move":
+		return o.move(ptr, v)
+	case "test":
+		return o.test(ptr, v)
 	default:
 		return nil, errors.New("rfc6902: unknown operation")
 	}
@@ -34,7 +39,9 @@ func (o *op) apply(v interface{}) (interface{}, error) {
 
 func (o *op) add(ptr jsonptr, v interface{}) (interface{}, error) {
 	p := patcher{ptr, v}
-	p.setExistingValue(o.Value)
+	if err := p.setExistingValue(o.Value); err != nil {
+		return nil, err
+	}
 	return p.jsonObject, nil
 }
 
@@ -47,6 +54,41 @@ func (o *op) remove(ptr jsonptr, v interface{}) (interface{}, error) {
 func (o *op) replace(ptr jsonptr, v interface{}) (interface{}, error) {
 	p := patcher{ptr, v}
 	p.replace(o.Value)
+	return p.jsonObject, nil
+}
+
+func (o *op) move(ptr jsonptr, v interface{}) (interface{}, error) {
+	fromPtr, err := newJSONPointer(o.From)
+	if err != nil {
+		return nil, err
+	}
+	from := patcher{fromPtr, v}
+
+	fromObj, err := from.value()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := from.remove(); err != nil {
+		return nil, err
+	}
+
+	p := patcher{ptr, from.jsonObject}
+	if err := p.setExistingValue(fromObj); err != nil {
+		return nil, err
+	}
+	return p.jsonObject, nil
+}
+
+func (o *op) test(ptr jsonptr, v interface{}) (interface{}, error) {
+	p := patcher{ptr, v}
+	v, err := p.value()
+	if err != nil {
+		return nil, err
+	}
+	if o.Value != v {
+		return nil, errors.New("test condition failed")
+	}
 	return p.jsonObject, nil
 }
 
@@ -99,7 +141,7 @@ func (p *Patcher) Apply(b []byte) ([]byte, error) {
 	for _, op := range p.ops {
 		v, err = op.apply(v)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 	}
 

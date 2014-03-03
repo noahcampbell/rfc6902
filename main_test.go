@@ -72,7 +72,7 @@ func Test_PatchApply_Empty(t *testing.T) {
 	}
 }
 
-func Test_RFC6902_A1(t *testing.T) {
+func Test_RFC6902_AppendixMutators(t *testing.T) {
 
 	tests := []struct {
 		rfcTitle, target, patch, expect string
@@ -119,7 +119,42 @@ func Test_RFC6902_A1(t *testing.T) {
 			patch: `[ { "op": "replace", "path": "/foo/0", "value": "baz" } ]`,
 			expect: `{ "foo": ["baz", "bar" ]}`,
 		},
-
+		{
+			rfcTitle: "A.6. Moving a Value",
+			target: `{ "foo": { "bar": "baz", "waldo": "fred" }, "qux": { "corge": "grault" } }`,
+			patch: ` [ { "op": "move", "from": "/foo/waldo", "path": "/qux/thud" } ]`,
+			expect: `  { "foo": { "bar": "baz" }, "qux": { "corge": "grault", "thud": "fred" } }`,
+		},
+		{
+			rfcTitle: "A.7. Moving an Array Element",
+			target: `{ "foo": [ "all", "grass", "cows", "eat" ] }`,
+			patch: `[ { "op": "move", "from": "/foo/1", "path": "/foo/3" } ]`,
+			expect: `{ "foo": [ "all", "cows", "eat", "grass" ] }`,
+		},
+		{
+			rfcTitle: "A.10. Adding a Nested Member Object",
+			target: `{ "foo": "bar" }`,
+			patch: `[ { "op": "add", "path": "/child", "value": { "grandchild": { } } } ]`,
+			expect: `{ "foo": "bar", "child": { "grandchild": { } } } `,
+		},
+		{
+			rfcTitle: "A.11. Ignoring Unrecognized Elements",
+			target: `{ "foo": "bar" }`,
+			patch: `[ { "op": "add", "path": "/baz", "value": "qux", "xyz": 123 } ]`,
+			expect: `{ "foo": "bar", "baz": "qux" }`,
+		},
+		{
+			rfcTitle: "A.14. ~ Escape Ordering",
+			target: `{ "/": 9, "~1": 10 }`,
+			patch: `[ {"op": "test", "path": "/~01", "value": 10} ]`,
+			expect: `{ "/": 9, "~1": 10 }`,
+		},
+		{
+			rfcTitle: "A.16. Adding an Array Value",
+			target: ` { "foo": ["bar"] }`,
+			patch: `[ { "op": "add", "path": "/foo/-", "value": ["abc", "def"] } ]`,
+			expect: `{ "foo": ["bar", ["abc", "def"]] }`,
+		},
 	}
 
 	for _, test := range tests {
@@ -134,6 +169,59 @@ func Test_RFC6902_A1(t *testing.T) {
 		}
 		if !jsonEqual(result, []byte(test.expect)) {
 			t.Errorf("%s\npatch failed => %s\n\nactual:\n%s\n\nexpected:\n%s", test.rfcTitle, test.patch, prettyPrintJson(result), prettyPrintJson([]byte(test.expect)))
+		}
+	}
+}
+
+func Test_RFC6902_AppendixEvaluation(t *testing.T) {
+
+	tests := []struct {
+		rfcTitle, target, patch string
+		expectError bool
+	}{
+		{
+			rfcTitle: "A.8. Test a Value: Success",
+			target: `{ "baz": "qux", "foo": [ "a", 2, "c" ] }`,
+			patch: ` [ { "op": "test", "path": "/baz", "value": "qux" }, { "op": "test", "path": "/foo/1", "value": 2 } ]`,
+			expectError: false,
+		},
+		{
+			rfcTitle: "A.9. Test a Value: Error",
+			target: `{ "baz": "qux" }`,
+			patch: `[ { "op": "test", "path": "/baz", "value": "bar" } ]`,
+			expectError: true,
+		},
+		{
+			rfcTitle: "A.12. Adding to a Nonexistent Target",
+			target: `{ "foo": "bar" }`,
+			patch: `[ { "op": "add", "path": "/baz/bat", "value": "qux" } ]`,
+			expectError: true,
+		},
+		/* Not sure how to handle this since JSON parser didn't hurl.
+		 {
+			rfcTitle: "A.13. Invalid JSON Patch Document",
+			target: `{ "foo": "bar" }`,
+			patch: `[ { "op": "add", "path": "/baz", "value": "qux", "op": "remove" } ]`,
+			expectError: true,
+		},
+		*/
+		 {
+			rfcTitle: "A.15. Comparing Strings and Numbers",
+			target: `{ "/": 9, "~1": 10 }`,
+			patch: `[ {"op": "test", "path": "/~01", "value": "10"} ]`,
+			expectError: true,
+		},
+	}
+
+	for _, test := range tests {
+		p, err := ParsePatch(strings.NewReader(test.patch))
+		if err != nil {
+			t.Fatalf("Failed parsing: %q. %s", test.patch, err)
+		}
+
+		_, err = p.Apply([]byte(test.target))
+		if err != nil != test.expectError {
+			t.Fatalf("%q: unexpected results (actual) %t != %t (expected)", test.rfcTitle, err != nil, test.expectError)
 		}
 	}
 }

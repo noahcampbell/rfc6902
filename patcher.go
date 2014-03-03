@@ -46,19 +46,28 @@ func(p *patcher) setExistingValue(v interface{}) error {
 	case map[string]interface{}:
 		t[p.pointer[len(p.pointer)-1].token()] = v
 	case []interface{}:
-		i, err := strconv.Atoi(p.pointer[len(p.pointer)-1].token())
-		if err != nil {
-			return err
-		}
+
 		parent, err := p.parentValue()
 		if err != nil {
 			return err
 		}
+
 		pa, ok := parent.([]interface{})
 		if !ok {
 			panic("unable to convert to []interface{}")
 		}
-		na := append(pa[:i], append([]interface{}{v}, pa[i:]...)...)
+
+		index := p.pointer[len(p.pointer)-1].token()
+		var na []interface{}
+		if index == "-" {
+			na = append(pa, v)
+		} else {
+			i, err := strconv.Atoi(index)
+			if err != nil {
+				return err
+			}
+			na = append(pa[:i], append([]interface{}{v}, pa[i:]...)...)
+		}
 
 		parentRef := p.parent()
 		if parentRef == nil {
@@ -76,6 +85,9 @@ func(p *patcher) setExistingValue(v interface{}) error {
 
 func (p *patcher) parentValue() (interface{}, error) {
 	v, err := value(p.pointer[:len(p.pointer)-1], &p.jsonObject)
+	if err != nil {
+		return nil, err
+	}
 	return *v, err
 }
 
@@ -108,8 +120,8 @@ func (p *patcher) remove() error {
 			panic("Unable to convert parent to []interface{}")
 		}
 
-		newArray := make([]interface{}, len(container) - 2)
-		copy(newArray, container[:i])
+		newArray := make([]interface{}, 0)
+		newArray = append(newArray, container[:i]...)
 		newArray = append(newArray, container[i+1:]...)
 		parent.setExistingValue(newArray)
 	default:
