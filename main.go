@@ -1,3 +1,4 @@
+// JSON Patch (rfc6902) support
 package rfc6902
 
 import (
