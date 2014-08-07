@@ -26,7 +26,7 @@ The documentation is available via godoc.
 
 ### Licensing
 
-Please the file called LICENSE
+Apache License.  Please see the file called LICENSE for complete license.
 
 ### Contacts
 
